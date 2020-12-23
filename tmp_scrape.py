@@ -57,7 +57,7 @@ requests_session = requests.Session() # to make the scrape fastser - use the sam
 #url = "https://web.archive.org/web/20150205011808/http://streeteasy.com/building/696-2-avenue-manhattan/2b"
  
 # second tester = 
-url = "https://web.archive.org/web/20150111134355/http://streeteasy.com/building/loft-14/2?featured=1"
+url = "https://web.archive.org/web/20150111134355/http://streeteasy.com/building/trump-tower/35e"
    
 #r = requests.get(url) # reuse if getting blocked by website
 r = requests_session.get(url)
@@ -145,3 +145,5 @@ df_single_search['lister'] = "|".join(list(history_table[1]))
 df_single_search['price_at_point'] = "|".join(list(history_table[2]))
 
 print(df_single_search)
+my_list = df_single_search.columns.values.tolist()
+print(my_list)
