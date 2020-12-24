@@ -57,7 +57,7 @@ requests_session = requests.Session() # to make the scrape fastser - use the sam
 #url = "https://web.archive.org/web/20150205011808/http://streeteasy.com/building/696-2-avenue-manhattan/2b"
  
 # second tester = 
-url = "https://web.archive.org/web/20150111134355/http://streeteasy.com/building/trump-tower/35e"
+url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
    
 #r = requests.get(url) # reuse if getting blocked by website
 r = requests_session.get(url)
@@ -66,17 +66,8 @@ soup = BeautifulSoup(r.text, 'lxml')
 
 import re
 
-archive_dates = re.findall(r'(?<=FILE ARCHIVED ON ).*(?=AND)' , str(soup))[0]
-if archive_dates:
-    print(archive_dates,"\n")
-    hour = re.findall(r'\d\d:\d\d:\d\d' , archive_dates)[0].strip()
-    year =  re.findall(r'\d{4}.*$' , archive_dates)[0].strip()
-    day =  re.findall(r'\d+(?=,)' , archive_dates)[0].strip()
-    month =  re.findall(r'(?<=\d\d:\d\d:\d\d).+?(?= )' , archive_dates)[0].strip()
-
-    print("hour: ",hour, "\n")
-    print("year: ",year, "\n")
-    print("day: ",day, "\n")
-    print("month: ", month, "\n")
+last_page_num = soup.select('a:nth-last-child(2)')[-2].get_text()
+#last_page_num = soup.find("a", {"class": "nd___highlighted"})#['href']
 
 
+print(last_page_num)

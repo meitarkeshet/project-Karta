@@ -67,8 +67,8 @@ def inside_scrape(url):
     print(url,'\n') # see where did you get to 
     requests_session = requests.Session() # to make the scrape fastser - use the same connection (risk of being blocked)
 
-    r = requests.get(url) # reuse if getting blocked by website
-    #r = requests_session.get(url)
+    #r = requests.get(url) # reuse if getting blocked by website
+    r = requests_session.get(url)
     soup = BeautifulSoup(r.text, 'lxml')  
     
     # create an empty data Frame
@@ -217,6 +217,13 @@ def check_next_page(current_page):
     else:
         return (False)
 
+def check_last_page_nbr(first_page):
+    r = requests.get(first_page)
+    soup = BeautifulSoup(r.text, 'html.parser')  
+    last_page_num = soup.select('a:nth-last-child(2)')[-2].get_text()
+    return (int(last_page_num))
+
+
 def check_last_page(first_page):
     r = requests.get(first_page)
     soup = BeautifulSoup(r.text, 'html.parser')  
@@ -225,13 +232,13 @@ def check_last_page(first_page):
     
 # takes the first page of a "website screenshot" (already by area, e.g Manhattan)
 def scrape_moment(first_page):
-    #last_page_url = check_last_page(first_page)
     current_page_url = first_page
+    last_page_num = check_last_page_nbr(first_page)
     #print(page_link_lst,'\n')
     dfObj = pd.DataFrame(columns=['scrape_day','scrape_month','scrape_year','scrape_hour','des_short', 'des_long', 'price', 'des_rooms', 'amenities', 'zip', 'address', 'days_on_market', 'price_history', 'lister', 'price_at_point','last_price_change'])
     # notice needing to change dfobj name
     page_num = 1 
-    while check_next_page(current_page_url):
+    while page_num < last_page_num:
         page_link_lst = outisde_scrape_links(current_page_url) # get links on current page
         for link in page_link_lst:
             # check if the page was archived
@@ -241,10 +248,9 @@ def scrape_moment(first_page):
         #time.sleep(random.randint(15, 120)) # avoid getting blocked
         dfObj.to_sql("temp_streeteasy", engine, index=False, if_exists='append')
         print("\n", current_page_url,"\n")
-        current_page_url = "https://web.archive.org"+str(check_next_page(current_page_url)) # change to the next page
-        print("\nafter:", current_page_url,"\n")
-        
         page_num = page_num+1
+        current_page_url = str(first_page)+"?page={}".format(page_num)# change to the next page
+        print("\nafter:", current_page_url,"\n")
     return (dfObj)
     
 
