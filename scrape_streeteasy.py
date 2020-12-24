@@ -50,9 +50,6 @@ from sqlalchemy import create_engine
 # Define functions:
 # ------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-
 # January 1, April 1, July 1, and October 1
 
 # the function gets a url for a webpage and returns a list of links (for each rental proposal) on that page 
