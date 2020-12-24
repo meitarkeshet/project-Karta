@@ -63,87 +63,20 @@ url = "https://web.archive.org/web/20150111134355/http://streeteasy.com/building
 r = requests_session.get(url)
 soup = BeautifulSoup(r.text, 'lxml')  
 
-# get a list of links in the page
 
-page_link_lst = []
+import re
 
-# create an empty data Frame
-# ----------------------------------------
-df_single_search = pd.DataFrame()
+archive_dates = re.findall(r'(?<=FILE ARCHIVED ON ).*(?=AND)' , str(soup))[0]
+if archive_dates:
+    print(archive_dates,"\n")
+    hour = re.findall(r'\d\d:\d\d:\d\d' , archive_dates)[0].strip()
+    year =  re.findall(r'\d{4}.*$' , archive_dates)[0].strip()
+    day =  re.findall(r'\d+(?=,)' , archive_dates)[0].strip()
+    month =  re.findall(r'(?<=\d\d:\d\d:\d\d).+?(?= )' , archive_dates)[0].strip()
 
-# insert data to dataFrame
-# ----------------------------------------
-# details:
-details = soup.find("div", {"class": "details"})
-
-# short description of the listing
-details_describe = details.find_all('span', attrs={'class':re.compile(r'detail_cell')})
-description_short = "".join(re.findall(r'\>(.*?)\<' , str(details_describe))) # DESC_SHORT > to file
-#print(description_short)
-df_single_search['des_short'] = [description_short] # notice passing as list 
-
-# detailed description (by owner)
-describe_soup = soup.find("blockquote", {"class": "description_togglable hidden"})
-description_long = describe_soup.get_text() # DESC_LONG > to file
-df_single_search['des_long'] = [description_long] # notice passing as list 
-
-# the price asked:
-price = re.findall(r'(?=\$).+', str(details))[0]  # RENT PRICE > to df
-df_single_search['price'] = [price] # notice passing as list 
+    print("hour: ",hour, "\n")
+    print("year: ",year, "\n")
+    print("day: ",day, "\n")
+    print("month: ", month, "\n")
 
 
-# description of rooms
-details_a = details.find_all('span', attrs={'class':'nobreak'})
-rooms = "".join(re.findall(r'\>(.*?)\<' , str(details_a))) # ROOMS > to df
-df_single_search['des_rooms'] = [rooms] # notice passing as list 
-
-
-# amenities included
-amenities_soup = soup.find('div', attrs={'class':re.compile(r'amenities')})
-amenities = amenities_soup.get_text().replace("Amenities", "").replace("\n\n", " ")
-df_single_search['amenities'] = [amenities] # notice passing as list 
-
-# save each second line under the name of the line above ---------------------
-
-# building address:
-address = soup.select_one('h2 ~ p').get_text()
-
-# seperate address, city, zipcode
-address_dirty = "".join(re.findall(r'(?!  ).?', ''.join(address.split('\n'))))
-address_dirty = address_dirty.split('  ')[0].replace(u'\xa0', u' ').split('  ') # the encoding ('utf-8') casuses space to be written as '\xa0'
-    # zip code
-zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
-df_single_search['zip'] = [zip_code] # notice passing as list 
-
-    # address
-address = address_dirty[0]
-df_single_search['address'] = [address] # notice passing as list 
-
-
-facts_dirty = soup.select('h6 ~ *')
-for i in facts_dirty:
-# Days On Market
-    #print(i.get_text(), "\n")
-    #print("end\n")
-    if "days on StreetEasy" in i.get_text():
-       days_on_market = i.get_text().strip()
-       df_single_search['days_on_market'] = [days_on_market] # notice passing as list 
-
-# Last Price Change
-    if "days ago" in i.get_text():
-        last_price_change = i.get_text().strip()
-        last_price_change = " ".join([i.strip() for i in last_price_change.split('\n')])
-        df_single_search['last_price_change'] = [last_price_change] # notice passing as list 
-
-# Price change history
-price_change_dirty = soup.select('h2 ~ table')
-history_table = pd.read_html(str(price_change_dirty))[0] # save into a pandas DataSet 
-
-print(",".join(list(history_table[0])),'\n')
-df_single_search['price_history'] = "|".join(list(history_table[0]))
-df_single_search['lister'] = "|".join(list(history_table[1]))
-df_single_search['price_at_point'] = "|".join(list(history_table[2]))
-
-print(df_single_search)
-my_list = df_single_search.columns.values.tolist()
-print(my_list)
