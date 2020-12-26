@@ -53,11 +53,11 @@ import cchardet # to assit in charecter detection
 
 requests_session = requests.Session() # to make the scrape fastser - use the same connection (risk of being blocked)
 
-# og tester = 
-#url = "https://web.archive.org/web/20150205011808/http://streeteasy.com/building/696-2-avenue-manhattan/2b"
- 
-# second tester = 
-url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
+# og tester = inside page
+url = "https://web.archive.org/web/20170809034313/http://streeteasy.com/building/199-water-street-manhattan/2100"
+url = "https://web.archive.org/web/20170724225251/http://streeteasy.com/distil_r_captcha.html?requestId=70e79418-3ef3-4ce2-88dd-cae6bbd17ec4&httpReferrer=%2Fbuilding%2F199-water-street-manhattan%2F2100"
+# second tester = outside page
+#url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
    
 #r = requests.get(url) # reuse if getting blocked by website
 r = requests_session.get(url)
@@ -65,9 +65,17 @@ soup = BeautifulSoup(r.text, 'lxml')
 
 
 import re
-
-last_page_num = soup.select('a:nth-last-child(2)')[-2].get_text()
-#last_page_num = soup.find("a", {"class": "nd___highlighted"})#['href']
-
-
-print(last_page_num)
+ # building address:
+address = soup.select_one('h2 ~ p').get_text()
+if address:    # seperate address, city, zipcode
+    address_dirty = "".join(re.findall(r'(?!  ).?', ''.join(address.split('\n'))))
+    if address_dirty:
+        print(address_dirty)
+        address_dirty = address_dirty.split('  ')[0].replace(u'\xa0', u' ').split('  ') # the encoding ('utf-8') casuses space to be written as '\xa0'
+    # zip code
+        if address_dirty[1]:
+            zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
+    # address
+        if address_dirty[0]:
+            address = address_dirty[0]
+    

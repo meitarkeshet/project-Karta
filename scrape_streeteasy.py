@@ -65,10 +65,10 @@ def outisde_scrape_links(url):
 # TAKES a url including detaild information on a rental proposal and RETURNS a single row'de dataFrame
 def inside_scrape(url):
     print(url,'\n') # see where did you get to 
-    requests_session = requests.Session() # to make the scrape fastser - use the same connection (risk of being blocked)
+    #requests_session = requests.Session() # to make the scrape fastser - use the same connection (risk of being blocked)
 
-    #r = requests.get(url) # reuse if getting blocked by website
-    r = requests_session.get(url)
+    r = requests.get(url) # reuse if getting blocked by website
+    #r = requests_session.get(url)
     soup = BeautifulSoup(r.text, 'lxml')  
     
     # create an empty data Frame
@@ -126,9 +126,11 @@ def inside_scrape(url):
         if address_dirty:
             address_dirty = address_dirty.split('  ')[0].replace(u'\xa0', u' ').split('  ') # the encoding ('utf-8') casuses space to be written as '\xa0'
     # zip code
-            zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
+            if address_dirty[1]:
+                zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
     # address
-            address = address_dirty[0]
+            if address_dirty[0]:
+                address = address_dirty[0]
     
     df_single_search['zip'] = [zip_code] # notice passing as list 
     df_single_search['address'] = [address] # notice passing as list 
@@ -153,17 +155,24 @@ def inside_scrape(url):
 
 
     # Price change history
+    print("\n Before price change history:\n")
     price_change_dirty = soup.select('h2 ~ table')
+ # Price change history
     if price_change_dirty:
-        history_table = pd.read_html(str(price_change_dirty))[0] # save into a pandas DataSet
-        if len(history_table) == 3:
-            if history_table.iloc[0].empty:
-                price_history = "|".join(str(list(history_table.iloc[0]))) # notice adding 'str' line
-            if history_table.iloc[1].empty:
-                lister = "|".join(list(history_table.iloc[1]))
-            if history_table.iloc[2].empty:
-                price_at_point = "|".join(list(history_table.iloc[2]))
-   # print(",".join(list(history_table[0])),'\n')
+        history_table = pd.read_html(str(price_change_dirty))[0].fillna(method='ffill', axis=0) # save into a pandas DataSet - fill NaN!
+        if history_table.shape[1] == 3:
+            print("\nhistory_table: \n",history_table)
+            
+            if not history_table.iloc[:,0].empty:
+                price_history = "|".join(list(history_table.iloc[:,0])) # notice - before added 'str' line
+                #print("\nprice_history: ", price_history)
+
+            if not history_table.iloc[:,1].empty:
+                lister = "|".join(list(history_table.iloc[:,1]))
+                #print("\nlister: ", lister)
+
+            if not history_table.iloc[:,2].empty:
+                price_at_point = "|".join(list(history_table.iloc[:,2]))
     df_single_search['price_history'] = price_history
     df_single_search['lister'] = lister
     df_single_search['price_at_point'] = price_at_point
@@ -241,16 +250,19 @@ def scrape_moment(first_page):
     while page_num < last_page_num:
         page_link_lst = outisde_scrape_links(current_page_url) # get links on current page
         for link in page_link_lst:
+            time.sleep(random.randint(10, 20)) # avoid getting blocked
             # check if the page was archived
             if check_archived(link):
                 dfObj = dfObj.append(inside_scrape(link)) 
             print("Page number: ",page_num)
-        #time.sleep(random.randint(15, 120)) # avoid getting blocked
+        
         dfObj.to_sql("temp_streeteasy", engine, index=False, if_exists='append')
         print("\n", current_page_url,"\n")
         page_num = page_num+1
         current_page_url = str(first_page)+"?page={}".format(page_num)# change to the next page
         print("\nafter:", current_page_url,"\n")
+        #time.sleep(random.randint(10, 120)) # avoid getting blocked
+
     return (dfObj)
     
 
