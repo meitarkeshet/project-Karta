@@ -51,31 +51,28 @@ import re
 import lxml 
 import cchardet # to assit in charecter detection
 
-requests_session = requests.Session() # to make the scrape fastser - use the same connection (risk of being blocked)
+#requests_session = requests.Session() # to make the scrape fastser - use the same connection (risk of being blocked)
 
 # og tester = inside page
-url = "https://web.archive.org/web/20170809034313/http://streeteasy.com/building/199-water-street-manhattan/2100"
+#url = "https://web.archive.org/web/20170809034313/http://streeteasy.com/building/199-water-street-manhattan/2100"
 url = "https://web.archive.org/web/20170724225251/http://streeteasy.com/distil_r_captcha.html?requestId=70e79418-3ef3-4ce2-88dd-cae6bbd17ec4&httpReferrer=%2Fbuilding%2F199-water-street-manhattan%2F2100"
 # second tester = outside page
 #url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
    
 #r = requests.get(url) # reuse if getting blocked by website
-r = requests_session.get(url)
-soup = BeautifulSoup(r.text, 'lxml')  
+#r = requests_session.get(url)
+#soup = BeautifulSoup(r.text, 'lxml')  
 
 
 import re
  # building address:
-address = soup.select_one('h2 ~ p').get_text()
-if address:    # seperate address, city, zipcode
-    address_dirty = "".join(re.findall(r'(?!  ).?', ''.join(address.split('\n'))))
-    if address_dirty:
-        print(address_dirty)
-        address_dirty = address_dirty.split('  ')[0].replace(u'\xa0', u' ').split('  ') # the encoding ('utf-8') casuses space to be written as '\xa0'
-    # zip code
-        if address_dirty[1]:
-            zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
-    # address
-        if address_dirty[0]:
-            address = address_dirty[0]
-    
+
+page_list = list(range(5))
+
+print(page_list,"\n")
+scrape_page = random.choice(page_list) # select a random page number value from the list of posible pages
+print(scrape_page,"\n")
+
+page_list.remove(scrape_page) # take out p. number of the current scraped page from the list of possible pages
+print(page_list,"\n")
+

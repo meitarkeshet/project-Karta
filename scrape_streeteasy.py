@@ -125,12 +125,13 @@ def inside_scrape(url):
         address_dirty = "".join(re.findall(r'(?!  ).?', ''.join(address.split('\n'))))
         if address_dirty:
             address_dirty = address_dirty.split('  ')[0].replace(u'\xa0', u' ').split('  ') # the encoding ('utf-8') casuses space to be written as '\xa0'
-    # zip code
-            if address_dirty[1]:
-                zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
-    # address
-            if address_dirty[0]:
-                address = address_dirty[0]
+            if len(address_dirty) == 2:
+        # zip code
+                if address_dirty[1]:
+                    zip_code = re.findall(r'[0-9]*$', address_dirty[1].strip())[0]
+        # address
+                if address_dirty[0]:
+                    address = address_dirty[0]
     
     df_single_search['zip'] = [zip_code] # notice passing as list 
     df_single_search['address'] = [address] # notice passing as list 
@@ -155,7 +156,7 @@ def inside_scrape(url):
 
 
     # Price change history
-    print("\n Before price change history:\n")
+    #print("\n Before price change history:\n")
     price_change_dirty = soup.select('h2 ~ table')
  # Price change history
     if price_change_dirty:
@@ -177,7 +178,7 @@ def inside_scrape(url):
     df_single_search['lister'] = lister
     df_single_search['price_at_point'] = price_at_point
     
-    print("out of scrape\n")
+    #print("out of scrape\n")
     # moment of scrape
     archive_dates = re.findall(r'(?<=FILE ARCHIVED ON ).*(?=AND)' , str(soup))
     if archive_dates:
@@ -241,11 +242,16 @@ def check_last_page(first_page):
     
 # takes the first page of a "website screenshot" (already by area, e.g Manhattan)
 def scrape_moment(first_page):
-    current_page_url = first_page
+    current_page_url = first_page # on the first round - use first page as current
     last_page_num = check_last_page_nbr(first_page)
+    
     #print(page_link_lst,'\n')
     dfObj = pd.DataFrame(columns=['scrape_day','scrape_month','scrape_year','scrape_hour','des_short', 'des_long', 'price', 'des_rooms', 'amenities', 'zip', 'address', 'days_on_market', 'price_history', 'lister', 'price_at_point','last_price_change'])
     # notice needing to change dfobj name
+    scrape_page = current_page_url # on the first round - use first page as current
+    page_list = list(range(last_page_num))
+    pages_success_scrape = set()
+    print (page_list)
     page_num = 1 
     while page_num < last_page_num:
         page_link_lst = outisde_scrape_links(current_page_url) # get links on current page
@@ -254,14 +260,23 @@ def scrape_moment(first_page):
             # check if the page was archived
             if check_archived(link):
                 dfObj = dfObj.append(inside_scrape(link)) 
-            print("Page number: ",page_num)
-        
+                pages_success_scrape.add(scrape_page) # add 
+            print("Scraped: ",page_num, " out of : ", last_page_num)
+
+        scrape_page = random.choice(page_list) # select a random page number value from the list of posible pages
+        print("\nLooking into: ",scrape_page)
+        page_list.remove(scrape_page) # take out p. number of the current scraped page from the list of possible pages
+
         dfObj.to_sql("temp_streeteasy", engine, index=False, if_exists='append')
         print("\n", current_page_url,"\n")
-        page_num = page_num+1
-        current_page_url = str(first_page)+"?page={}".format(page_num)# change to the next page
+        page_num = page_num+1 # for counting pages scraped
+        #current_page_url = str(first_page)+"?page={}".format(page_num)# change to the next page
+        current_page_url = str(first_page)+"?page={}".format(scrape_page)# change to the next page
+        
         print("\nafter:", current_page_url,"\n")
-        #time.sleep(random.randint(10, 120)) # avoid getting blocked
+        print("\nScraped the following pages: ",pages_success_scrape)
+        print("\nWhich makes a total of :",len(pages_success_scrape))
+        time.sleep(random.randint(10, 120)) # avoid getting blocked
 
     return (dfObj)
     
