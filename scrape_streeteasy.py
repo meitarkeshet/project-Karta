@@ -119,8 +119,9 @@ def inside_scrape(url):
     # save each second line under the name of the line above ---------------------
 
     # building address:
-    address = soup.select_one('h2 ~ p').get_text()
+    address = soup.select_one('h2 ~ p')
     if address:
+        address = address.get_text()
     # seperate address, city, zipcode
         address_dirty = "".join(re.findall(r'(?!  ).?', ''.join(address.split('\n'))))
         if address_dirty:
@@ -132,6 +133,12 @@ def inside_scrape(url):
         # address
                 if address_dirty[0]:
                     address = address_dirty[0]
+    else: # if the address is not specified - use the ad title
+        address = soup.find('h1', attrs={'class':'building-title nd___highlighted'})
+        if address:
+            address = address.get_text()
+
+        
     
     df_single_search['zip'] = [zip_code] # notice passing as list 
     df_single_search['address'] = [address] # notice passing as list 
@@ -249,7 +256,9 @@ def scrape_moment(first_page):
     dfObj = pd.DataFrame(columns=['scrape_day','scrape_month','scrape_year','scrape_hour','des_short', 'des_long', 'price', 'des_rooms', 'amenities', 'zip', 'address', 'days_on_market', 'price_history', 'lister', 'price_at_point','last_price_change'])
     # notice needing to change dfobj name
     scrape_page = current_page_url # on the first round - use first page as current
-    page_list = list(range(last_page_num))
+    #page_list = list(range(last_page_num)) - what the last page should have been if it was fully archived
+    page_list = list(range(2,11)) # scrape only 9 pages
+
     pages_success_scrape = set()
     print (page_list)
     page_num = 1 
@@ -261,7 +270,8 @@ def scrape_moment(first_page):
             if check_archived(link):
                 dfObj = dfObj.append(inside_scrape(link)) 
                 pages_success_scrape.add(scrape_page) # add 
-            print("Scraped: ",page_num, " out of : ", last_page_num)
+           # print("Scraped: ",page_num, " out of : ", last_page_num)
+            print("Scraped: ",page_num, " out of : 10")
 
         scrape_page = random.choice(page_list) # select a random page number value from the list of posible pages
         print("\nLooking into: ",scrape_page)
@@ -282,7 +292,8 @@ def scrape_moment(first_page):
     
 
 # for 2014
-url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
+#url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
+url = "https://web.archive.org/web/20150111135412if_/http://streeteasy.com/for-rent/brooklyn"
 
 #print(scrape_moment(url))
 # ------------------------------------------------------------------------------------------------------
@@ -297,7 +308,7 @@ engine = create_engine(f"mysql+pymysql://{username}:{password}@{hostname}/{datab
 
 base_df = pd.DataFrame(columns=['scrape_day','scrape_month','scrape_year','scrape_hour','des_short', 'des_long', 'price', 'des_rooms', 'amenities', 'zip', 'address', 'days_on_market', 'price_history', 'lister', 'price_at_point','last_price_change'])
 # clean exsiting frame 
-base_df.to_sql("temp_streeteasy", engine, index=False, if_exists='replace')
+base_df.to_sql('ann_rent_2014_brooklyn_q1', engine, index=False, if_exists='replace')
 #push to sql
 scrape_moment(url)
 
