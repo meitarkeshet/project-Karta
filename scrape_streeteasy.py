@@ -50,7 +50,6 @@ from sqlalchemy import create_engine
 # Define functions:
 # ------------------------------------------------------------------------------------------------------------------------------------
 
-# January 1, April 1, July 1, and October 1
 
 # the function gets a url for a webpage and returns a list of links (for each rental proposal) on that page 
 def outisde_scrape_links(url):  
@@ -212,16 +211,25 @@ def inside_scrape(url):
 # takes a url, opens it and checks if the words Hrm. exist in the first h2 object
 def check_archived(web_page):
     requests_session = requests.Session()
-    r = requests_session.get(web_page)
-    soup = BeautifulSoup(r.text, 'lxml') 
-    top_h2 = soup.select_one('h2').get_text()
-    print (top_h2)
-    if 'Hrm.' in top_h2:
-        print("Page not archived")
-        return (False)
-    else:
-        print("Page archived")
-        return (True)
+    try:
+        r = requests_session.get(web_page, timeout=10.0)
+        soup = BeautifulSoup(r.text, 'lxml') 
+        top_h2 = soup.select_one('h2').get_text()
+        print (top_h2)
+        if 'Hrm.' in top_h2:
+            print("Page not archived")
+            return (False)
+        else:
+            print("Page archived")
+            return (True)
+    except requests.Timeout as err:
+        print(err)
+        return(False)
+    except requests.RequestException as err:
+        print(err)
+        return(False)
+    return(False)
+   
     
 # takes a first page and retuns the url of the last page
 def check_next_page(current_page):
@@ -250,7 +258,7 @@ def check_last_page(first_page):
 # takes the first page of a "website screenshot" (already by area, e.g Manhattan)
 def scrape_moment(first_page):
     current_page_url = first_page # on the first round - use first page as current
-    last_page_num = check_last_page_nbr(first_page)
+    #last_page_num = check_last_page_nbr(first_page)
     
     #print(page_link_lst,'\n')
     dfObj = pd.DataFrame(columns=['scrape_day','scrape_month','scrape_year','scrape_hour','des_short', 'des_long', 'price', 'des_rooms', 'amenities', 'zip', 'address', 'days_on_market', 'price_history', 'lister', 'price_at_point','last_price_change'])
@@ -262,7 +270,9 @@ def scrape_moment(first_page):
     pages_success_scrape = set()
     print (page_list)
     page_num = 1 
-    while page_num < last_page_num:
+    #while page_num < last_page_num and page_list:
+    while page_list:
+
         page_link_lst = outisde_scrape_links(current_page_url) # get links on current page
         for link in page_link_lst:
             time.sleep(random.randint(10, 20)) # avoid getting blocked
@@ -277,7 +287,7 @@ def scrape_moment(first_page):
         print("\nLooking into: ",scrape_page)
         page_list.remove(scrape_page) # take out p. number of the current scraped page from the list of possible pages
 
-        dfObj.to_sql("temp_streeteasy", engine, index=False, if_exists='append')
+        dfObj.to_sql("ann_rent_2014_statenisland_q4", engine, index=False, if_exists='append')
         print("\n", current_page_url,"\n")
         page_num = page_num+1 # for counting pages scraped
         #current_page_url = str(first_page)+"?page={}".format(page_num)# change to the next page
@@ -290,10 +300,33 @@ def scrape_moment(first_page):
 
     return (dfObj)
     
+# January 1, April 1, July 1, and October 
+
+  # """ January, February, and March (Q1)
+   # April, May, and June (Q2)
+   # July, August, and September (Q3)
+   # October, November, and December (Q4)"""
+
+# for 2015
+# Q1 - 
+# Jan - 
+#url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
+#url = "https://web.archive.org/web/20150111135412if_/http://streeteasy.com/for-rent/brooklyn"
+#url = "https://web.archive.org/web/20150102022927/http://streeteasy.com/for-rent/queens"
+#url = "https://web.archive.org/web/20150102022927/http://streeteasy.com/for-rent/queens"
+
 
 # for 2014
-#url = "https://web.archive.org/web/20150111134355if_/http://streeteasy.com/for-rent/manhattan"
-url = "https://web.archive.org/web/20150111135412if_/http://streeteasy.com/for-rent/brooklyn"
+
+# Q1 - 
+#  March 21
+# NOT WRKING > 
+#url = "https://web.archive.org/web/20140808121241/http://streeteasy.com/for-rent/bronx?view=details" 
+
+# Q4
+# December 16
+#url = "https://web.archive.org/web/20141216094807/http://streeteasy.com/for-rent/queens"
+#url ="https://web.archive.org/web/20141230121038/http://streeteasy.com/for-rent/staten-island"
 
 #print(scrape_moment(url))
 # ------------------------------------------------------------------------------------------------------
@@ -308,7 +341,7 @@ engine = create_engine(f"mysql+pymysql://{username}:{password}@{hostname}/{datab
 
 base_df = pd.DataFrame(columns=['scrape_day','scrape_month','scrape_year','scrape_hour','des_short', 'des_long', 'price', 'des_rooms', 'amenities', 'zip', 'address', 'days_on_market', 'price_history', 'lister', 'price_at_point','last_price_change'])
 # clean exsiting frame 
-base_df.to_sql('ann_rent_2014_brooklyn_q1', engine, index=False, if_exists='replace')
+base_df.to_sql('ann_rent_2014_statenisland_q4', engine, index=False, if_exists='replace')
 #push to sql
 scrape_moment(url)
 
